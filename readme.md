@@ -1,6 +1,6 @@
 # lfi2rce_phpinfo.go
 
-This script is used to exploit a Local File Inclusion (LFI) vulnerability by using phpinfo.php to generate a temporary file name and then using that file name to read the contents of a file.
+This program is used to exploit a Remote Code Execution vulnerability by uploading a file to the server, retrieving it's random name by using phpinfo and executing it through a Local File Inclusion (LFI) vulnerability.
 
 ## Usage
 
